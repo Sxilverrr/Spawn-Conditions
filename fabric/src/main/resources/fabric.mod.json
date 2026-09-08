@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "id": "${id}",
+  "version": "${version}",
+  "name": "${name}",
+  "description": "Customizable player spawn conditions",
+  "authors": [
+    "Sxilverr"
+  ],
+  "contact": {},
+  "license": "MIT",
+  "icon": "assets/${id}/icon.png",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "com.sxilverr.spawnconditions.fabric.SpawnConditionsFabric"
+    ],
+    "modmenu": [
+      "com.sxilverr.spawnconditions.fabric.ModMenuIntegration"
+    ]
+  },
+  "mixins": [
+    "spawnconditions-common.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.15",
+    "fabric-api": "*",
+    "minecraft": "${minecraft}"
+  },
+  "suggests": {
+    "modmenu": "*",
+    "cloth-config": "*"
+  }
+}
