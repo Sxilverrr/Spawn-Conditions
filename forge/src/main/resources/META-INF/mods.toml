@@ -10,6 +10,7 @@ authors = "Sxilverr"
 description = "Customizable player spawn conditions"
 logoFile = "assets/${id}/icon.png"
 logoBlur = false
+displayTest = "IGNORE_ALL_VERSION"
 
 [[mixins]]
 config = "spawnconditions-common.mixins.json"
