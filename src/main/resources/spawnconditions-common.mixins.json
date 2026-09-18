@@ -4,7 +4,9 @@
   "package": "com.sxilverr.spawnconditions.mixin",
   "mixins": [
     "MinecraftServerMixin",
+    "PlayerListMixin",
     "PlayerRespawnLogicMixin",
+    "ServerPlayerAccessor",
     "ServerPlayerMixin"
   ],
   "injectors": {

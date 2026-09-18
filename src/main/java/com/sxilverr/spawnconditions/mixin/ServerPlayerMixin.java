@@ -18,7 +18,7 @@ public class ServerPlayerMixin {
 
     @Inject(method = "setRespawnPosition", at = @At("HEAD"), cancellable = true)
     private void spawnconditions$blockPlayerSpawnSetting(ResourceKey<Level> dimension, BlockPos position, float angle, boolean forced, boolean sendMessage, CallbackInfo ci) {
-        if (!SpawnConfig.enabled || !SpawnConfig.respawn.preventSpawnSetting) {
+        if (!SpawnConfig.enabled || !SpawnConfig.respawn.blocksSpawnSetting(dimension)) {
             return;
         }
         if (position == null || forced) {
@@ -30,7 +30,8 @@ public class ServerPlayerMixin {
 
     @Inject(method = "displayClientMessage", at = @At("HEAD"), cancellable = true)
     private void spawnconditions$replaceBedMessage(Component message, boolean actionBar, CallbackInfo ci) {
-        if (!SpawnConfig.enabled || !SpawnConfig.respawn.preventSpawnSetting) {
+        if (!SpawnConfig.enabled
+                || !SpawnConfig.respawn.blocksSpawnSetting(((ServerPlayer) (Object) this).level().dimension())) {
             return;
         }
         if (!(message.getContents() instanceof TranslatableContents contents)

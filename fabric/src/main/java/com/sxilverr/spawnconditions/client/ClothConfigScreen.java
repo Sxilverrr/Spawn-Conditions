@@ -137,10 +137,16 @@ public final class ClothConfigScreen {
                 .setTooltip(Component.literal("Player cannot set their spawn. Beds and respawn anchors will not save a spawn point."))
                 .setDefaultValue(false)
                 .setSaveConsumer(v -> data.respawn.preventSpawnSetting = v).build());
+        respawn.addEntry(eb.startStrList(Component.literal("Dimensions where spawn cannot be set"), data.respawn.preventSpawnSettingDimensions)
+                .setTooltip(Component.literal("Player cannot set their spawn in these dimensions. Use modid:dimension"))
+                .setDefaultValue(List.of()).setSaveConsumer(v -> data.respawn.preventSpawnSettingDimensions = v).build());
         respawn.addEntry(eb.startStrField(Component.literal("Blocked message"), data.respawn.spawnBlockedMessage)
                 .setTooltip(Component.literal("Message shown when a player cannot set their spawn. Leave empty for no message."), Component.literal("Use & for colour and format codes, like &c for red or &l for bold."))
                 .setDefaultValue("&cYou cannot set your spawn.")
                 .setSaveConsumer(v -> data.respawn.spawnBlockedMessage = v).build());
+        respawn.addEntry(eb.startStrList(Component.literal("Respawn in the same dimension"), data.respawn.stayInDimensions)
+                .setTooltip(Component.literal("Players who die in these dimensions respawn in the same dimension. Use modid:dimension"), Component.literal("Spread out by the spawnRadius gamerule unless the player has a spawn point there."))
+                .setDefaultValue(List.of()).setSaveConsumer(v -> data.respawn.stayInDimensions = v).build());
 
         return builder.build();
     }

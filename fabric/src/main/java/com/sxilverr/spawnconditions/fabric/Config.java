@@ -107,7 +107,9 @@ public final class Config {
 
     public static final class RespawnData {
         public boolean preventSpawnSetting = false;
+        public List<String> preventSpawnSettingDimensions = new ArrayList<>();
         public String spawnBlockedMessage = "&cYou cannot set your spawn.";
+        public List<String> stayInDimensions = new ArrayList<>();
     }
 
     public static final class Data {
@@ -172,6 +174,9 @@ public final class Config {
             SpawnConfig.respawn.preventSpawnSetting = this.respawn.preventSpawnSetting;
             SpawnConfig.respawn.spawnBlockedMessage =
                     this.respawn.spawnBlockedMessage == null ? "" : this.respawn.spawnBlockedMessage;
+            SpawnConfig.respawn.setDimensionLists(
+                    this.respawn.preventSpawnSettingDimensions == null ? List.of() : this.respawn.preventSpawnSettingDimensions,
+                    this.respawn.stayInDimensions == null ? List.of() : this.respawn.stayInDimensions);
             SpawnConfig.respawn.normalise();
         }
     }
@@ -245,9 +250,14 @@ public final class Config {
               "respawn": {
                 // Player cannot set their spawn. Beds and respawn anchors will not save a spawn point.
                 "preventSpawnSetting": false,
+                // Player cannot set their spawn in these dimensions. Use modid:dimension
+                "preventSpawnSettingDimensions": [],
                 // Message shown when a player cannot set their spawn. Leave empty for no message.
                 // Use & for colour and format codes, like &c for red or &l for bold.
-                "spawnBlockedMessage": "&cYou cannot set your spawn."
+                "spawnBlockedMessage": "&cYou cannot set your spawn.",
+                // Players who die in these dimensions respawn in the same dimension. Use modid:dimension
+                // Spread out by the spawnRadius gamerule unless the player has a spawn point there.
+                "stayInDimensions": []
               }
             }
             """;

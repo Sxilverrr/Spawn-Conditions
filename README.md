@@ -35,7 +35,9 @@ Customizable player spawn conditions.
 | `placement.fluidAllowList` | `[]` | Only spawn in these fluids. Leave empty to never spawn in fluids. |
 | `placement.fluidDenyList` | `[]` | Never spawn in these fluids. |
 | `respawn.preventSpawnSetting` | `false` | Player cannot set their spawn. Beds and respawn anchors will not save a spawn point. |
+| `respawn.preventSpawnSettingDimensions` | `[]` | Player cannot set their spawn in these dimensions. |
 | `respawn.spawnBlockedMessage` | `&cYou cannot set your spawn.` | Message shown when a player cannot set their spawn. Leave empty for no message. |
+| `respawn.stayInDimensions` | `[]` | Players who die in these dimensions respawn in the same dimension. |
 
 ## Lists
 
@@ -78,6 +80,26 @@ keeps going down until it finds a floor with air above it. Add
 `"biomeAllowList": ["minecraft:lush_caves"]` to pick a cave biome. Biomes are 3D, so the check runs
 at the spawn spot, not at the surface.
 
+## Same dimension respawn
+
+`stayInDimensions` keeps players in a dimension when they die there, like how RLCraft does the
+Lost Cities:
+
+```json
+"respawn": {
+  "stayInDimensions": ["lostcities:lostcity"]
+}
+```
+
+A player who dies in the Lost Cities respawns somewhere else in the Lost Cities. `spawnRadius` gamerule also applies.
+every death there keeps them there until they get back to the overworld.
+
+A spawn point set inside a listed dimension is used as normal. Put the same dimension in
+`preventSpawnSettingDimensions` to prevent someone setting their spawn.
+
+The spread only works in dimensions with a sky, like the overworld or the Lost Cities. In a dimension
+without one, like the Nether or the End, the player is put at the world spawn x and z.
+
 ## Notes
 
 `worldSpawn` sets the point everything else is measured from. It only runs for the overworld of a
@@ -87,7 +109,8 @@ The vanilla `spawnRadius` gamerule can be used to specify spawn radius in blocks
 If you want this to occur on every world, use the [Global GameRules](https://www.curseforge.com/minecraft/mc-mods/global-gamerules) mod.
 
 `preventSpawnSetting` stops beds and respawn anchors saving a spawn point, so every death goes back
-through the rules you set. `/spawnpoint` still works.
+through the rules you set. `preventSpawnSettingDimensions` does the same only in the dimensions you list.
+`/spawnpoint` still works.
 
 `spawnBlockedMessage` This is what the player sees above their hotbar when they cannot set their spawn. Put `&` in
 front of a color or format code, like `&c` for red, `&l` for bold or `&r` to reset. Leave the option empty for no message.

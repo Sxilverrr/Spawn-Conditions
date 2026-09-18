@@ -51,7 +51,9 @@ public final class Config {
     private static final ForgeConfigSpec.ConfigValue<List<? extends String>> FLUID_DENY;
 
     private static final ForgeConfigSpec.BooleanValue PREVENT_SPAWN_SETTING;
+    private static final ForgeConfigSpec.ConfigValue<List<? extends String>> PREVENT_SPAWN_SETTING_DIMENSIONS;
     private static final ForgeConfigSpec.ConfigValue<String> SPAWN_BLOCKED_MESSAGE;
+    private static final ForgeConfigSpec.ConfigValue<List<? extends String>> STAY_IN_DIMENSIONS;
 
     static {
         BUILDER.comment("World spawn point.")
@@ -163,10 +165,19 @@ public final class Config {
         PREVENT_SPAWN_SETTING = BUILDER
                 .comment("Player cannot set their spawn. Beds and respawn anchors will not save a spawn point.")
                 .define("preventSpawnSetting", false);
+        PREVENT_SPAWN_SETTING_DIMENSIONS = BUILDER
+                .comment("Player cannot set their spawn in these dimensions.",
+                        "Use modid:dimension")
+                .defineListAllowEmpty(Collections.singletonList("preventSpawnSettingDimensions"), () -> Collections.emptyList(), Config::isValidListEntry);
         SPAWN_BLOCKED_MESSAGE = BUILDER
                 .comment("Message shown when a player cannot set their spawn. Leave empty for no message.",
                         "Use & for colour and format codes, like &c for red or &l for bold.")
                 .define("spawnBlockedMessage", "&cYou cannot set your spawn.");
+        STAY_IN_DIMENSIONS = BUILDER
+                .comment("Players who die in these dimensions respawn in the same dimension.",
+                        "Spread out by the spawnRadius gamerule unless the player has a spawn point there.",
+                        "Use modid:dimension")
+                .defineListAllowEmpty(Collections.singletonList("stayInDimensions"), () -> Collections.emptyList(), Config::isValidListEntry);
         BUILDER.pop();
     }
 
@@ -225,6 +236,7 @@ public final class Config {
 
         SpawnConfig.respawn.preventSpawnSetting = PREVENT_SPAWN_SETTING.get();
         SpawnConfig.respawn.spawnBlockedMessage = SPAWN_BLOCKED_MESSAGE.get();
+        SpawnConfig.respawn.setDimensionLists(PREVENT_SPAWN_SETTING_DIMENSIONS.get(), STAY_IN_DIMENSIONS.get());
         SpawnConfig.respawn.normalise();
     }
 }

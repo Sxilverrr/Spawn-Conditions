@@ -5,11 +5,17 @@ import com.sxilverr.spawnconditions.core.BlockMatcher;
 import com.sxilverr.spawnconditions.core.FluidMatcher;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.Holder;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.FluidState;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public final class SpawnConfig {
     public static boolean enabled = true;
@@ -191,6 +197,8 @@ public final class SpawnConfig {
         public String spawnBlockedMessage = "&cYou cannot set your spawn.";
 
         private transient String resolvedMessage = "";
+        private Set<ResourceKey<Level>> preventSpawnSettingDimensions = Set.of();
+        private Set<ResourceKey<Level>> stayInDimensions = Set.of();
 
         public void normalise() {
             this.resolvedMessage = translateFormatCodes(this.spawnBlockedMessage);
@@ -198,6 +206,37 @@ public final class SpawnConfig {
 
         public String message() {
             return this.resolvedMessage;
+        }
+
+        public void setDimensionLists(List<? extends String> preventSpawnSetting, List<? extends String> stayIn) {
+            this.preventSpawnSettingDimensions = parseDimensions(preventSpawnSetting);
+            this.stayInDimensions = parseDimensions(stayIn);
+        }
+
+        public boolean blocksSpawnSetting(ResourceKey<Level> dimension) {
+            return this.preventSpawnSetting
+                    || (dimension != null && this.preventSpawnSettingDimensions.contains(dimension));
+        }
+
+        public boolean staysIn(ResourceKey<Level> dimension) {
+            return dimension != null && this.stayInDimensions.contains(dimension);
+        }
+
+        private static Set<ResourceKey<Level>> parseDimensions(List<? extends String> entries) {
+            if (entries == null || entries.isEmpty()) {
+                return Set.of();
+            }
+            Set<ResourceKey<Level>> dimensions = new HashSet<>();
+            for (String entry : entries) {
+                if (entry == null || entry.isBlank()) {
+                    continue;
+                }
+                ResourceLocation id = ResourceLocation.tryParse(entry.trim());
+                if (id != null) {
+                    dimensions.add(ResourceKey.create(Registries.DIMENSION, id));
+                }
+            }
+            return Set.copyOf(dimensions);
         }
     }
 }
