@@ -109,6 +109,7 @@ public final class Config {
         public boolean preventSpawnSetting = false;
         public List<String> preventSpawnSettingDimensions = new ArrayList<>();
         public String spawnBlockedMessage = "&cYou cannot set your spawn.";
+        public boolean bedSpawnRequiresSleep = false;
         public List<String> stayInDimensions = new ArrayList<>();
     }
 
@@ -174,6 +175,7 @@ public final class Config {
             SpawnConfig.respawn.preventSpawnSetting = this.respawn.preventSpawnSetting;
             SpawnConfig.respawn.spawnBlockedMessage =
                     this.respawn.spawnBlockedMessage == null ? "" : this.respawn.spawnBlockedMessage;
+            SpawnConfig.respawn.bedSpawnRequiresSleep = this.respawn.bedSpawnRequiresSleep;
             SpawnConfig.respawn.setDimensionLists(
                     this.respawn.preventSpawnSettingDimensions == null ? List.of() : this.respawn.preventSpawnSettingDimensions,
                     this.respawn.stayInDimensions == null ? List.of() : this.respawn.stayInDimensions);
@@ -255,6 +257,8 @@ public final class Config {
                 // Message shown when a player cannot set their spawn. Leave empty for no message.
                 // Use & for colour and format codes, like &c for red or &l for bold.
                 "spawnBlockedMessage": "&cYou cannot set your spawn.",
+                // Beds only save a spawn point when the player sleeps in them.
+                "bedSpawnRequiresSleep": false,
                 // Players who die in these dimensions respawn in the same dimension. Use modid:dimension
                 // Spread out by the spawnRadius gamerule unless the player has a spawn point there.
                 "stayInDimensions": []

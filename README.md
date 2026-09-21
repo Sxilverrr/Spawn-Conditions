@@ -37,6 +37,7 @@ Customizable player spawn conditions.
 | `respawn.preventSpawnSetting` | `false` | Player cannot set their spawn. Beds and respawn anchors will not save a spawn point. |
 | `respawn.preventSpawnSettingDimensions` | `[]` | Player cannot set their spawn in these dimensions. |
 | `respawn.spawnBlockedMessage` | `&cYou cannot set your spawn.` | Message shown when a player cannot set their spawn. Leave empty for no message. |
+| `respawn.bedSpawnRequiresSleep` | `false` | Beds only save a spawn point when the player sleeps in them. |
 | `respawn.stayInDimensions` | `[]` | Players who die in these dimensions respawn in the same dimension. |
 
 ## Lists
@@ -114,6 +115,8 @@ through the rules you set. `preventSpawnSettingDimensions` does the same only in
 
 `spawnBlockedMessage` This is what the player sees above their hotbar when they cannot set their spawn. Put `&` in
 front of a color or format code, like `&c` for red, `&l` for bold or `&r` to reset. Leave the option empty for no message.
+
+`bedSpawnRequiresSleep` makes beds only set your spawn when you sleep. You cannot set your spawn during the day, like how RLCraft does.
 
 Every default is vanilla, so a new config with `enabled` on changes nothing until you turn something on. 
 

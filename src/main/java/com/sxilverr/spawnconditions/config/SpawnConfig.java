@@ -195,6 +195,7 @@ public final class SpawnConfig {
     public static final class Respawn {
         public boolean preventSpawnSetting = false;
         public String spawnBlockedMessage = "&cYou cannot set your spawn.";
+        public boolean bedSpawnRequiresSleep = false;
 
         private transient String resolvedMessage = "";
         private Set<ResourceKey<Level>> preventSpawnSettingDimensions = Set.of();

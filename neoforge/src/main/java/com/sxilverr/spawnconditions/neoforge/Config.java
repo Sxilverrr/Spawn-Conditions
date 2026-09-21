@@ -47,6 +47,7 @@ public final class Config {
     private static final ModConfigSpec.BooleanValue PREVENT_SPAWN_SETTING;
     private static final ModConfigSpec.ConfigValue<List<? extends String>> PREVENT_SPAWN_SETTING_DIMENSIONS;
     private static final ModConfigSpec.ConfigValue<String> SPAWN_BLOCKED_MESSAGE;
+    private static final ModConfigSpec.BooleanValue BED_SPAWN_REQUIRES_SLEEP;
     private static final ModConfigSpec.ConfigValue<List<? extends String>> STAY_IN_DIMENSIONS;
 
     static {
@@ -167,6 +168,9 @@ public final class Config {
                 .comment("Message shown when a player cannot set their spawn. Leave empty for no message.",
                         "Use & for colour and format codes, like &c for red or &l for bold.")
                 .define("spawnBlockedMessage", "&cYou cannot set your spawn.");
+        BED_SPAWN_REQUIRES_SLEEP = BUILDER
+                .comment("Beds only save a spawn point when the player sleeps in them.")
+                .define("bedSpawnRequiresSleep", false);
         STAY_IN_DIMENSIONS = BUILDER
                 .comment("Players who die in these dimensions respawn in the same dimension.",
                         "Spread out by the spawnRadius gamerule unless the player has a spawn point there.",
@@ -220,6 +224,7 @@ public final class Config {
 
         SpawnConfig.respawn.preventSpawnSetting = PREVENT_SPAWN_SETTING.get();
         SpawnConfig.respawn.spawnBlockedMessage = SPAWN_BLOCKED_MESSAGE.get();
+        SpawnConfig.respawn.bedSpawnRequiresSleep = BED_SPAWN_REQUIRES_SLEEP.get();
         SpawnConfig.respawn.setDimensionLists(PREVENT_SPAWN_SETTING_DIMENSIONS.get(), STAY_IN_DIMENSIONS.get());
         SpawnConfig.respawn.normalise();
     }

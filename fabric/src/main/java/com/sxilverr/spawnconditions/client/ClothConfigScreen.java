@@ -144,6 +144,10 @@ public final class ClothConfigScreen {
                 .setTooltip(Component.literal("Message shown when a player cannot set their spawn. Leave empty for no message."), Component.literal("Use & for colour and format codes, like &c for red or &l for bold."))
                 .setDefaultValue("&cYou cannot set your spawn.")
                 .setSaveConsumer(v -> data.respawn.spawnBlockedMessage = v).build());
+        respawn.addEntry(eb.startBooleanToggle(Component.literal("Beds only set spawn when slept in"), data.respawn.bedSpawnRequiresSleep)
+                .setTooltip(Component.literal("Beds only save a spawn point when the player sleeps in them."))
+                .setDefaultValue(false)
+                .setSaveConsumer(v -> data.respawn.bedSpawnRequiresSleep = v).build());
         respawn.addEntry(eb.startStrList(Component.literal("Respawn in the same dimension"), data.respawn.stayInDimensions)
                 .setTooltip(Component.literal("Players who die in these dimensions respawn in the same dimension. Use modid:dimension"), Component.literal("Spread out by the spawnRadius gamerule unless the player has a spawn point there."))
                 .setDefaultValue(List.of()).setSaveConsumer(v -> data.respawn.stayInDimensions = v).build());
