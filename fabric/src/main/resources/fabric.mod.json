@@ -7,10 +7,8 @@
   "authors": [
     "Sxilverr"
   ],
-  "contact": {},
   "license": "MIT",
   "icon": "assets/${id}/icon.png",
-  "environment": "*",
   "entrypoints": {
     "main": [
       "com.sxilverr.spawnconditions.fabric.SpawnConditionsFabric"

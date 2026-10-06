@@ -93,7 +93,7 @@ Lost Cities:
 ```
 
 A player who dies in the Lost Cities respawns somewhere else in the Lost Cities. `spawnRadius` gamerule also applies.
-every death there keeps them there until they get back to the overworld.
+Every death in that dimension keeps them there until they get out of that dimension.
 
 A spawn point set inside a listed dimension is used as normal. Put the same dimension in
 `preventSpawnSettingDimensions` to prevent someone setting their spawn.

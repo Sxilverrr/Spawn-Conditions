@@ -1,247 +1,137 @@
 package com.sxilverr.spawnconditions.forge;
 
-import com.sxilverr.spawnconditions.SpawnConditions;
 import com.sxilverr.spawnconditions.config.SpawnConfig;
 import net.minecraftforge.common.ForgeConfigSpec;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.event.config.ModConfigEvent;
 
-import java.util.Collections;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 
-@Mod.EventBusSubscriber(modid = SpawnConditions.MOD_ID, bus = Mod.EventBusSubscriber.Bus.MOD)
+@Mod.EventBusSubscriber(modid = SpawnConfig.MOD_ID, bus = Mod.EventBusSubscriber.Bus.MOD)
 public final class Config {
+    private static final int LIMIT = 30000000;
     private static final ForgeConfigSpec.Builder BUILDER = new ForgeConfigSpec.Builder();
-
-    private static final ForgeConfigSpec.BooleanValue ENABLED = BUILDER
-            .comment("Master switch.")
-            .define("enabled", true);
-
-    private static final ForgeConfigSpec.BooleanValue WS_RANDOMIZE;
-    private static final ForgeConfigSpec.EnumValue<SpawnConfig.WorldSpawnArea> WS_AREA;
-    private static final ForgeConfigSpec.IntValue WS_CENTER_X;
-    private static final ForgeConfigSpec.IntValue WS_CENTER_Z;
-    private static final ForgeConfigSpec.IntValue WS_MIN_RADIUS;
-    private static final ForgeConfigSpec.IntValue WS_MAX_RADIUS;
-    private static final ForgeConfigSpec.IntValue WS_MIN_X;
-    private static final ForgeConfigSpec.IntValue WS_MAX_X;
-    private static final ForgeConfigSpec.IntValue WS_MIN_Z;
-    private static final ForgeConfigSpec.IntValue WS_MAX_Z;
-    private static final ForgeConfigSpec.IntValue WS_ATTEMPTS;
-
-    private static final ForgeConfigSpec.BooleanValue FLUID_BLOCKS_COLUMN;
-    private static final ForgeConfigSpec.EnumValue<SpawnConfig.LiquidLanding> LIQUID_LANDING;
-    private static final ForgeConfigSpec.EnumValue<SpawnConfig.GroundRequirement> GROUND_REQUIREMENT;
-    private static final ForgeConfigSpec.IntValue REQUIRED_HEADROOM;
-    private static final ForgeConfigSpec.BooleanValue HEADROOM_ALLOWS_FLUID;
-    private static final ForgeConfigSpec.IntValue MAX_SEARCH_DEPTH;
-    private static final ForgeConfigSpec.IntValue MIN_Y;
-    private static final ForgeConfigSpec.IntValue MAX_Y;
-    private static final ForgeConfigSpec.BooleanValue LIMIT_HORIZONTALLY;
-    private static final ForgeConfigSpec.IntValue MIN_X;
-    private static final ForgeConfigSpec.IntValue MAX_X;
-    private static final ForgeConfigSpec.IntValue MIN_Z;
-    private static final ForgeConfigSpec.IntValue MAX_Z;
-    private static final ForgeConfigSpec.ConfigValue<List<? extends String>> BIOME_ALLOW;
-    private static final ForgeConfigSpec.ConfigValue<List<? extends String>> BIOME_DENY;
-    private static final ForgeConfigSpec.ConfigValue<List<? extends String>> BLOCK_ALLOW;
-    private static final ForgeConfigSpec.ConfigValue<List<? extends String>> BLOCK_DENY;
-    private static final ForgeConfigSpec.ConfigValue<List<? extends String>> FLUID_ALLOW;
-    private static final ForgeConfigSpec.ConfigValue<List<? extends String>> FLUID_DENY;
-
-    private static final ForgeConfigSpec.BooleanValue PREVENT_SPAWN_SETTING;
-    private static final ForgeConfigSpec.ConfigValue<List<? extends String>> PREVENT_SPAWN_SETTING_DIMENSIONS;
-    private static final ForgeConfigSpec.ConfigValue<String> SPAWN_BLOCKED_MESSAGE;
-    private static final ForgeConfigSpec.BooleanValue BED_SPAWN_REQUIRES_SLEEP;
-    private static final ForgeConfigSpec.ConfigValue<List<? extends String>> STAY_IN_DIMENSIONS;
+    private static final List<Runnable> BAKERS = new ArrayList<>();
+    public static final ForgeConfigSpec SPEC;
 
     static {
-        BUILDER.comment("World spawn point.")
-                .push("World Spawn");
-        WS_RANDOMIZE = BUILDER
-                .comment("Randomize the world spawn instead of using 0,0.")
-                .define("randomize", false);
-        WS_AREA = BUILDER
-                .comment("Shape to pick the spawn from.")
-                .defineEnum("area", SpawnConfig.WorldSpawnArea.RING);
-        WS_CENTER_X = BUILDER
-                .comment("RING: the x coordinate to start from.")
-                .defineInRange("centerX", 0, -30000000, 30000000);
-        WS_CENTER_Z = BUILDER
-                .comment("RING: the z coordinate to start from.")
-                .defineInRange("centerZ", 0, -30000000, 30000000);
-        WS_MIN_RADIUS = BUILDER
-                .comment("RING: minimum for how far out to spawn.")
-                .defineInRange("minRadius", 0, 0, 30000000);
-        WS_MAX_RADIUS = BUILDER
-                .comment("RING: maximum for how far out to spawn.")
-                .defineInRange("maxRadius", 10000, 0, 30000000);
-        WS_MIN_X = BUILDER
-                .comment("BOX: lowest x coordinate that a spawn can use.")
-                .defineInRange("minX", -10000, -30000000, 30000000);
-        WS_MAX_X = BUILDER
-                .comment("BOX: highest x coordinate that a spawn can use.")
-                .defineInRange("maxX", 10000, -30000000, 30000000);
-        WS_MIN_Z = BUILDER
-                .comment("BOX: lowest z coordinate that a spawn can use.")
-                .defineInRange("minZ", -10000, -30000000, 30000000);
-        WS_MAX_Z = BUILDER
-                .comment("BOX: highest z coordinate that a spawn can use.")
-                .defineInRange("maxZ", 10000, -30000000, 30000000);
-        WS_ATTEMPTS = BUILDER
-                .comment("How many attempts before giving up. Each attempt loads a chunk.")
-                .defineInRange("attempts", 32, 1, 1024);
+        SpawnConfig.WorldSpawn ws = SpawnConfig.worldSpawn;
+        SpawnConfig.Placement pl = SpawnConfig.placement;
+        SpawnConfig.Respawn rs = SpawnConfig.respawn;
+
+        bind(BUILDER.comment("Master switch.").define("enabled", SpawnConfig.enabled), v -> SpawnConfig.enabled = v);
+
+        BUILDER.comment("World spawn point.").push("World Spawn");
+        bind(BUILDER.comment("Randomize the world spawn instead of using 0,0.")
+                .define("randomize", ws.randomize), v -> ws.randomize = v);
+        bind(BUILDER.comment("Shape to pick the spawn from.")
+                .defineEnum("area", ws.area), v -> ws.area = v);
+        bind(BUILDER.comment("RING: the x coordinate to start from.")
+                .defineInRange("centerX", ws.centerX, -LIMIT, LIMIT), v -> ws.centerX = v);
+        bind(BUILDER.comment("RING: the z coordinate to start from.")
+                .defineInRange("centerZ", ws.centerZ, -LIMIT, LIMIT), v -> ws.centerZ = v);
+        bind(BUILDER.comment("RING: minimum for how far out to spawn.")
+                .defineInRange("minRadius", ws.minRadius, 0, LIMIT), v -> ws.minRadius = v);
+        bind(BUILDER.comment("RING: maximum for how far out to spawn.")
+                .defineInRange("maxRadius", ws.maxRadius, 0, LIMIT), v -> ws.maxRadius = v);
+        bind(BUILDER.comment("BOX: lowest x coordinate that a spawn can use.")
+                .defineInRange("minX", ws.minX, -LIMIT, LIMIT), v -> ws.minX = v);
+        bind(BUILDER.comment("BOX: highest x coordinate that a spawn can use.")
+                .defineInRange("maxX", ws.maxX, -LIMIT, LIMIT), v -> ws.maxX = v);
+        bind(BUILDER.comment("BOX: lowest z coordinate that a spawn can use.")
+                .defineInRange("minZ", ws.minZ, -LIMIT, LIMIT), v -> ws.minZ = v);
+        bind(BUILDER.comment("BOX: highest z coordinate that a spawn can use.")
+                .defineInRange("maxZ", ws.maxZ, -LIMIT, LIMIT), v -> ws.maxZ = v);
+        bind(BUILDER.comment("How many attempts before giving up. Each attempt loads a chunk.")
+                .defineInRange("attempts", ws.attempts, 1, 1024), v -> ws.attempts = v);
         BUILDER.pop();
 
-        BUILDER.comment("Spawn conditions.")
-                .push("Placement");
-        FLUID_BLOCKS_COLUMN = BUILDER
-                .comment("Skip the whole spot when a fluid is not allowed. Off keeps looking below it.")
-                .define("fluidBlocksColumn", true);
-        LIQUID_LANDING = BUILDER
-                .comment("Land on top of a liquid or on the ground under it.")
-                .defineEnum("liquidLanding", SpawnConfig.LiquidLanding.SURFACE);
-        GROUND_REQUIREMENT = BUILDER
-                .comment("What counts as ground to stand on.")
-                .defineEnum("groundRequirement", SpawnConfig.GroundRequirement.FULL_FACE);
-        REQUIRED_HEADROOM = BUILDER
-                .comment("Empty space needed above the player. 0 is vanilla.")
-                .defineInRange("requiredHeadroom", 0, 0, 64);
-        HEADROOM_ALLOWS_FLUID = BUILDER
-                .comment("Count liquid as empty space above the player.")
-                .define("headroomAllowsFluid", true);
-        MAX_SEARCH_DEPTH = BUILDER
-                .comment("Blocks the search may descend before giving up. 0 is unlimited.")
-                .defineInRange("maxSearchDepth", 0, 0, 4096);
-        MIN_Y = BUILDER
-                .comment("Lowest y coordinate that a spawn can use.")
-                .defineInRange("minY", -2048, -2048, 2048);
-        MAX_Y = BUILDER
-                .comment("Highest y coordinate that a spawn can use. Lower it for cave spawns.")
-                .defineInRange("maxY", 2048, -2048, 2048);
-        LIMIT_HORIZONTALLY = BUILDER
-                .comment("Turn on the x and z limits below.")
-                .define("limitHorizontally", false);
-        MIN_X = BUILDER
-                .comment("Lowest x coordinate that a spawn can use.")
-                .defineInRange("minX", -30000000, -30000000, 30000000);
-        MAX_X = BUILDER
-                .comment("Highest x coordinate that a spawn can use.")
-                .defineInRange("maxX", 30000000, -30000000, 30000000);
-        MIN_Z = BUILDER
-                .comment("Lowest z coordinate that a spawn can use.")
-                .defineInRange("minZ", -30000000, -30000000, 30000000);
-        MAX_Z = BUILDER
-                .comment("Highest z coordinate that a spawn can use.")
-                .defineInRange("maxZ", 30000000, -30000000, 30000000);
-        BIOME_ALLOW = BUILDER
-                .comment("Only spawn in these biomes. Leave empty for any.",
-                        "Use modid:biome or #modid:tag")
-                .defineListAllowEmpty(Collections.singletonList("biomeAllowList"), () -> Collections.emptyList(), Config::isValidListEntry);
-        BIOME_DENY = BUILDER
-                .comment("Never spawn in these biomes.",
-                        "Use modid:biome or #modid:tag")
-                .defineListAllowEmpty(Collections.singletonList("biomeDenyList"), () -> Collections.emptyList(), Config::isValidListEntry);
-        BLOCK_ALLOW = BUILDER
-                .comment("Only spawn on these blocks. Leave empty for any.",
-                        "Use modid:block or #modid:tag")
-                .defineListAllowEmpty(Collections.singletonList("blockAllowList"), () -> Collections.emptyList(), Config::isValidListEntry);
-        BLOCK_DENY = BUILDER
-                .comment("Never spawn on these blocks.",
-                        "Use modid:block or #modid:tag")
-                .defineListAllowEmpty(Collections.singletonList("blockDenyList"), () -> Collections.emptyList(), Config::isValidListEntry);
-        FLUID_ALLOW = BUILDER
-                .comment("Only spawn in these fluids. Leave empty to never spawn in fluids.",
-                        "Use modid:fluid or #modid:tag. Tags also cover flowing fluid.")
-                .defineListAllowEmpty(Collections.singletonList("fluidAllowList"), () -> Collections.emptyList(), Config::isValidListEntry);
-        FLUID_DENY = BUILDER
-                .comment("Never spawn in these fluids.",
-                        "Use modid:fluid or #modid:tag. Tags also cover flowing fluid.")
-                .defineListAllowEmpty(Collections.singletonList("fluidDenyList"), () -> Collections.emptyList(), Config::isValidListEntry);
+        BUILDER.comment("Spawn conditions.").push("Placement");
+        bind(BUILDER.comment("Skip the whole spot when a fluid is not allowed. Off keeps looking below it.")
+                .define("fluidBlocksColumn", pl.fluidBlocksColumn), v -> pl.fluidBlocksColumn = v);
+        bind(BUILDER.comment("Land on top of a liquid or on the ground under it.")
+                .defineEnum("liquidLanding", pl.liquidLanding), v -> pl.liquidLanding = v);
+        bind(BUILDER.comment("What counts as ground to stand on.")
+                .defineEnum("groundRequirement", pl.groundRequirement), v -> pl.groundRequirement = v);
+        bind(BUILDER.comment("Empty space needed above the player. 0 is vanilla.")
+                .defineInRange("requiredHeadroom", pl.requiredHeadroom, 0, 64), v -> pl.requiredHeadroom = v);
+        bind(BUILDER.comment("Count liquid as empty space above the player.")
+                .define("headroomAllowsFluid", pl.headroomAllowsFluid), v -> pl.headroomAllowsFluid = v);
+        bind(BUILDER.comment("Blocks the search may descend before giving up. 0 is unlimited.")
+                .defineInRange("maxSearchDepth", pl.maxSearchDepth, 0, 4096), v -> pl.maxSearchDepth = v);
+        bind(BUILDER.comment("Lowest y coordinate that a spawn can use.")
+                .defineInRange("minY", pl.minY, -2048, 2048), v -> pl.minY = v);
+        bind(BUILDER.comment("Highest y coordinate that a spawn can use. Lower it for cave spawns.")
+                .defineInRange("maxY", pl.maxY, -2048, 2048), v -> pl.maxY = v);
+        bind(BUILDER.comment("Turn on the x and z limits below.")
+                .define("limitHorizontally", pl.limitHorizontally), v -> pl.limitHorizontally = v);
+        bind(BUILDER.comment("Lowest x coordinate that a spawn can use.")
+                .defineInRange("minX", pl.minX, -LIMIT, LIMIT), v -> pl.minX = v);
+        bind(BUILDER.comment("Highest x coordinate that a spawn can use.")
+                .defineInRange("maxX", pl.maxX, -LIMIT, LIMIT), v -> pl.maxX = v);
+        bind(BUILDER.comment("Lowest z coordinate that a spawn can use.")
+                .defineInRange("minZ", pl.minZ, -LIMIT, LIMIT), v -> pl.minZ = v);
+        bind(BUILDER.comment("Highest z coordinate that a spawn can use.")
+                .defineInRange("maxZ", pl.maxZ, -LIMIT, LIMIT), v -> pl.maxZ = v);
+        list("biomeAllowList", v -> pl.biomeAllowList = v,
+                "Only spawn in these biomes. Leave empty for any.", "Use modid:biome or #modid:tag");
+        list("biomeDenyList", v -> pl.biomeDenyList = v,
+                "Never spawn in these biomes.", "Use modid:biome or #modid:tag");
+        list("blockAllowList", v -> pl.blockAllowList = v,
+                "Only spawn on these blocks. Leave empty for any.", "Use modid:block or #modid:tag");
+        list("blockDenyList", v -> pl.blockDenyList = v,
+                "Never spawn on these blocks.", "Use modid:block or #modid:tag");
+        list("fluidAllowList", v -> pl.fluidAllowList = v,
+                "Only spawn in these fluids. Leave empty to never spawn in fluids.", "Use modid:fluid or #modid:tag. Tags also cover flowing fluid.");
+        list("fluidDenyList", v -> pl.fluidDenyList = v,
+                "Never spawn in these fluids.", "Use modid:fluid or #modid:tag. Tags also cover flowing fluid.");
         BUILDER.pop();
 
-        BUILDER.comment("Respawn conditions.")
-                .push("Respawn");
-        PREVENT_SPAWN_SETTING = BUILDER
-                .comment("Player cannot set their spawn. Beds and respawn anchors will not save a spawn point.")
-                .define("preventSpawnSetting", false);
-        PREVENT_SPAWN_SETTING_DIMENSIONS = BUILDER
-                .comment("Player cannot set their spawn in these dimensions.",
-                        "Use modid:dimension")
-                .defineListAllowEmpty(Collections.singletonList("preventSpawnSettingDimensions"), () -> Collections.emptyList(), Config::isValidListEntry);
-        SPAWN_BLOCKED_MESSAGE = BUILDER
-                .comment("Message shown when a player cannot set their spawn. Leave empty for no message.",
+        BUILDER.comment("Respawn conditions.").push("Respawn");
+        bind(BUILDER.comment("Player cannot set their spawn. Beds and respawn anchors will not save a spawn point.")
+                .define("preventSpawnSetting", rs.preventSpawnSetting), v -> rs.preventSpawnSetting = v);
+        list("preventSpawnSettingDimensions", v -> rs.preventSpawnSettingDimensions = v,
+                "Player cannot set their spawn in these dimensions.", "Use modid:dimension");
+        bind(BUILDER.comment("Message shown when a player cannot set their spawn. Leave empty for no message.",
                         "Use & for colour and format codes, like &c for red or &l for bold.")
-                .define("spawnBlockedMessage", "&cYou cannot set your spawn.");
-        BED_SPAWN_REQUIRES_SLEEP = BUILDER
-                .comment("Beds only save a spawn point when the player sleeps in them.")
-                .define("bedSpawnRequiresSleep", false);
-        STAY_IN_DIMENSIONS = BUILDER
-                .comment("Players who die in these dimensions respawn in the same dimension.",
-                        "Spread out by the spawnRadius gamerule unless the player has a spawn point there.",
-                        "Use modid:dimension")
-                .defineListAllowEmpty(Collections.singletonList("stayInDimensions"), () -> Collections.emptyList(), Config::isValidListEntry);
+                .define("spawnBlockedMessage", rs.spawnBlockedMessage), v -> rs.spawnBlockedMessage = v);
+        bind(BUILDER.comment("Beds only save a spawn point when the player sleeps in them.")
+                .define("bedSpawnRequiresSleep", rs.bedSpawnRequiresSleep), v -> rs.bedSpawnRequiresSleep = v);
+        list("stayInDimensions", v -> rs.stayInDimensions = v,
+                "Players who die in these dimensions respawn in the same dimension.",
+                "Spread out by the spawnRadius gamerule unless the player has a spawn point there.", "Use modid:dimension");
         BUILDER.pop();
-    }
 
-    public static final ForgeConfigSpec SPEC = BUILDER.build();
+        SPEC = BUILDER.build();
+    }
 
     private Config() {
     }
 
-    private static boolean isValidListEntry(Object value) {
-        return value instanceof String s && !s.isBlank();
+    private static <T> void bind(ForgeConfigSpec.ConfigValue<T> value, Consumer<T> setter) {
+        BAKERS.add(() -> setter.accept(value.get()));
+    }
+
+    private static void list(String key, Consumer<List<String>> setter, String... comment) {
+        bind(BUILDER.comment(comment).<String>defineListAllowEmpty(key, List.of(), o -> o instanceof String s && !s.isBlank()),
+                v -> setter.accept(List.copyOf(v)));
     }
 
     @SubscribeEvent
-    static void onLoad(final ModConfigEvent.Loading event) {
+    static void onLoad(ModConfigEvent.Loading event) {
         bake();
     }
 
     @SubscribeEvent
-    static void onReload(final ModConfigEvent.Reloading event) {
+    static void onReload(ModConfigEvent.Reloading event) {
         bake();
     }
 
     private static void bake() {
-        SpawnConfig.enabled = ENABLED.get();
-
-        SpawnConfig.worldSpawn.randomize = WS_RANDOMIZE.get();
-        SpawnConfig.worldSpawn.area = WS_AREA.get();
-        SpawnConfig.worldSpawn.centerX = WS_CENTER_X.get();
-        SpawnConfig.worldSpawn.centerZ = WS_CENTER_Z.get();
-        SpawnConfig.worldSpawn.minRadius = WS_MIN_RADIUS.get();
-        SpawnConfig.worldSpawn.maxRadius = WS_MAX_RADIUS.get();
-        SpawnConfig.worldSpawn.minX = WS_MIN_X.get();
-        SpawnConfig.worldSpawn.maxX = WS_MAX_X.get();
-        SpawnConfig.worldSpawn.minZ = WS_MIN_Z.get();
-        SpawnConfig.worldSpawn.maxZ = WS_MAX_Z.get();
-        SpawnConfig.worldSpawn.attempts = WS_ATTEMPTS.get();
-        SpawnConfig.worldSpawn.normalise();
-
-        SpawnConfig.placement.fluidBlocksColumn = FLUID_BLOCKS_COLUMN.get();
-        SpawnConfig.placement.liquidLanding = LIQUID_LANDING.get();
-        SpawnConfig.placement.groundRequirement = GROUND_REQUIREMENT.get();
-        SpawnConfig.placement.requiredHeadroom = REQUIRED_HEADROOM.get();
-        SpawnConfig.placement.headroomAllowsFluid = HEADROOM_ALLOWS_FLUID.get();
-        SpawnConfig.placement.maxSearchDepth = MAX_SEARCH_DEPTH.get();
-        SpawnConfig.placement.minY = MIN_Y.get();
-        SpawnConfig.placement.maxY = MAX_Y.get();
-        SpawnConfig.placement.limitHorizontally = LIMIT_HORIZONTALLY.get();
-        SpawnConfig.placement.minX = MIN_X.get();
-        SpawnConfig.placement.maxX = MAX_X.get();
-        SpawnConfig.placement.minZ = MIN_Z.get();
-        SpawnConfig.placement.maxZ = MAX_Z.get();
-        SpawnConfig.placement.setBiomeLists(BIOME_ALLOW.get(), BIOME_DENY.get());
-        SpawnConfig.placement.setBlockLists(BLOCK_ALLOW.get(), BLOCK_DENY.get());
-        SpawnConfig.placement.setFluidLists(FLUID_ALLOW.get(), FLUID_DENY.get());
-        SpawnConfig.placement.normalise();
-
-        SpawnConfig.respawn.preventSpawnSetting = PREVENT_SPAWN_SETTING.get();
-        SpawnConfig.respawn.spawnBlockedMessage = SPAWN_BLOCKED_MESSAGE.get();
-        SpawnConfig.respawn.bedSpawnRequiresSleep = BED_SPAWN_REQUIRES_SLEEP.get();
-        SpawnConfig.respawn.setDimensionLists(PREVENT_SPAWN_SETTING_DIMENSIONS.get(), STAY_IN_DIMENSIONS.get());
-        SpawnConfig.respawn.normalise();
+        BAKERS.forEach(Runnable::run);
+        SpawnConfig.bake();
     }
 }

@@ -25,23 +25,9 @@ dependencies {
     }
 }
 
-loom {
-    decompilers {
-        get("vineflower").apply {
-            options.put("mark-corresponding-synthetics", "1")
-        }
-    }
-}
-
 java {
-    withSourcesJar()
     val java = if (stonecutter.eval(minecraft, ">=1.20.5"))
         JavaVersion.VERSION_21 else JavaVersion.VERSION_17
     targetCompatibility = java
     sourceCompatibility = java
-}
-
-tasks.build {
-    group = "versioned"
-    description = "Must run through 'chiseledBuild'"
 }

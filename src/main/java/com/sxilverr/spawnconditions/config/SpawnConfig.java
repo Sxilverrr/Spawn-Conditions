@@ -1,58 +1,38 @@
 package com.sxilverr.spawnconditions.config;
 
-import com.sxilverr.spawnconditions.core.BiomeMatcher;
-import com.sxilverr.spawnconditions.core.BlockMatcher;
-import com.sxilverr.spawnconditions.core.FluidMatcher;
+import com.sxilverr.spawnconditions.core.IdMatcher;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.biome.Biome;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.FluidState;
 
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 public final class SpawnConfig {
+    public static final String MOD_ID = "spawnconditions";
+
     public static boolean enabled = true;
-    public static final WorldSpawn worldSpawn = new WorldSpawn();
-    public static final Placement placement = new Placement();
-    public static final Respawn respawn = new Respawn();
+    public static WorldSpawn worldSpawn = new WorldSpawn();
+    public static Placement placement = new Placement();
+    public static Respawn respawn = new Respawn();
+
+    static {
+        bake();
+    }
 
     private SpawnConfig() {
     }
 
-    private static final String FORMAT_CODES = "0123456789abcdefklmnorABCDEFKLMNOR";
-
-    public static String translateFormatCodes(String raw) {
-        if (raw == null || raw.isEmpty()) {
-            return "";
-        }
-        char[] chars = raw.toCharArray();
-        for (int i = 0; i < chars.length - 1; i++) {
-            if (chars[i] == '&' && FORMAT_CODES.indexOf(chars[i + 1]) >= 0) {
-                chars[i] = ChatFormatting.PREFIX_CODE;
-                i++;
-            }
-        }
-        return new String(chars);
-    }
-
-    public static <T extends Enum<T>> T parseEnum(String raw, T[] values, T fallback) {
-        if (raw == null) {
-            return fallback;
-        }
-        String trimmed = raw.trim();
-        for (T candidate : values) {
-            if (candidate.name().equalsIgnoreCase(trimmed)) {
-                return candidate;
-            }
-        }
-        return fallback;
+    public static void bake() {
+        worldSpawn.bake();
+        placement.bake();
+        respawn.bake();
     }
 
     public enum LiquidLanding {
@@ -84,24 +64,19 @@ public final class SpawnConfig {
         public int maxZ = 10000;
         public int attempts = 32;
 
-        public void normalise() {
-            if (this.minRadius > this.maxRadius) {
-                int swap = this.minRadius;
-                this.minRadius = this.maxRadius;
-                this.maxRadius = swap;
+        private void bake() {
+            if (this.area == null) {
+                this.area = WorldSpawnArea.RING;
             }
-            if (this.minX > this.maxX) {
-                int swap = this.minX;
-                this.minX = this.maxX;
-                this.maxX = swap;
-            }
-            if (this.minZ > this.maxZ) {
-                int swap = this.minZ;
-                this.minZ = this.maxZ;
-                this.maxZ = swap;
-            }
-            this.minRadius = Math.max(0, this.minRadius);
-            this.maxRadius = Math.max(0, this.maxRadius);
+            int radius = this.minRadius;
+            this.minRadius = Math.max(0, Math.min(radius, this.maxRadius));
+            this.maxRadius = Math.max(0, Math.max(radius, this.maxRadius));
+            int x = this.minX;
+            this.minX = Math.min(x, this.maxX);
+            this.maxX = Math.max(x, this.maxX);
+            int z = this.minZ;
+            this.minZ = Math.min(z, this.maxZ);
+            this.maxZ = Math.max(z, this.maxZ);
             this.attempts = Math.max(1, this.attempts);
         }
     }
@@ -120,124 +95,92 @@ public final class SpawnConfig {
         public int maxX = 30000000;
         public int minZ = -30000000;
         public int maxZ = 30000000;
+        public List<String> biomeAllowList = List.of();
+        public List<String> biomeDenyList = List.of();
+        public List<String> blockAllowList = List.of();
+        public List<String> blockDenyList = List.of();
+        public List<String> fluidAllowList = List.of();
+        public List<String> fluidDenyList = List.of();
 
-        private BiomeMatcher biomeAllowMatcher = BiomeMatcher.compile(List.of());
-        private BiomeMatcher biomeDenyMatcher = BiomeMatcher.compile(List.of());
-        private BlockMatcher blockAllowMatcher = BlockMatcher.compile(List.of());
-        private BlockMatcher blockDenyMatcher = BlockMatcher.compile(List.of());
-        private FluidMatcher fluidAllowMatcher = FluidMatcher.compile(List.of());
-        private FluidMatcher fluidDenyMatcher = FluidMatcher.compile(List.of());
+        private transient IdMatcher<Biome> biomeAllow;
+        private transient IdMatcher<Biome> biomeDeny;
+        private transient IdMatcher<Block> blockAllow;
+        private transient IdMatcher<Block> blockDeny;
+        private transient IdMatcher<Fluid> fluidAllow;
+        private transient IdMatcher<Fluid> fluidDeny;
 
-        public void normalise() {
-            if (this.minY > this.maxY) {
-                int swap = this.minY;
-                this.minY = this.maxY;
-                this.maxY = swap;
+        private void bake() {
+            if (this.liquidLanding == null) {
+                this.liquidLanding = LiquidLanding.SURFACE;
             }
-            if (this.minX > this.maxX) {
-                int swap = this.minX;
-                this.minX = this.maxX;
-                this.maxX = swap;
-            }
-            if (this.minZ > this.maxZ) {
-                int swap = this.minZ;
-                this.minZ = this.maxZ;
-                this.maxZ = swap;
+            if (this.groundRequirement == null) {
+                this.groundRequirement = GroundRequirement.FULL_FACE;
             }
             this.requiredHeadroom = Math.max(0, this.requiredHeadroom);
             this.maxSearchDepth = Math.max(0, this.maxSearchDepth);
-        }
-
-        public void setBiomeLists(List<? extends String> allow, List<? extends String> deny) {
-            this.biomeAllowMatcher = BiomeMatcher.compile(allow);
-            this.biomeDenyMatcher = BiomeMatcher.compile(deny);
-        }
-
-        public void setBlockLists(List<? extends String> allow, List<? extends String> deny) {
-            this.blockAllowMatcher = BlockMatcher.compile(allow);
-            this.blockDenyMatcher = BlockMatcher.compile(deny);
-        }
-
-        public void setFluidLists(List<? extends String> allow, List<? extends String> deny) {
-            this.fluidAllowMatcher = FluidMatcher.compile(allow);
-            this.fluidDenyMatcher = FluidMatcher.compile(deny);
-        }
-
-        public boolean fluidAllowed(FluidState state) {
-            if (this.fluidDenyMatcher.matches(state)) {
-                return false;
-            }
-            return !this.fluidAllowMatcher.isEmpty() && this.fluidAllowMatcher.matches(state);
+            int y = this.minY;
+            this.minY = Math.min(y, this.maxY);
+            this.maxY = Math.max(y, this.maxY);
+            int x = this.minX;
+            this.minX = Math.min(x, this.maxX);
+            this.maxX = Math.max(x, this.maxX);
+            int z = this.minZ;
+            this.minZ = Math.min(z, this.maxZ);
+            this.maxZ = Math.max(z, this.maxZ);
+            this.biomeAllow = IdMatcher.of(Registries.BIOME, this.biomeAllowList);
+            this.biomeDeny = IdMatcher.of(Registries.BIOME, this.biomeDenyList);
+            this.blockAllow = IdMatcher.of(Registries.BLOCK, this.blockAllowList);
+            this.blockDeny = IdMatcher.of(Registries.BLOCK, this.blockDenyList);
+            this.fluidAllow = IdMatcher.of(Registries.FLUID, this.fluidAllowList);
+            this.fluidDeny = IdMatcher.of(Registries.FLUID, this.fluidDenyList);
         }
 
         public boolean withinHorizontalBounds(int x, int z) {
-            if (!this.limitHorizontally) {
-                return true;
-            }
-            return x >= this.minX && x <= this.maxX && z >= this.minZ && z <= this.maxZ;
+            return !this.limitHorizontally || (x >= this.minX && x <= this.maxX && z >= this.minZ && z <= this.maxZ);
+        }
+
+        public boolean fluidAllowed(FluidState state) {
+            return !this.fluidDeny.matches(state.holder()) && this.fluidAllow.matches(state.holder());
         }
 
         public boolean biomeAllowed(Holder<Biome> biome) {
-            if (this.biomeDenyMatcher.matches(biome)) {
-                return false;
-            }
-            return this.biomeAllowMatcher.isEmpty() || this.biomeAllowMatcher.matches(biome);
+            return !this.biomeDeny.matches(biome) && (this.biomeAllow.isEmpty() || this.biomeAllow.matches(biome));
         }
 
         public boolean blockAllowed(BlockState state) {
-            if (this.blockDenyMatcher.matches(state)) {
-                return false;
-            }
-            return this.blockAllowMatcher.isEmpty() || this.blockAllowMatcher.matches(state);
+            Holder<Block> block = state.getBlockHolder();
+            return !this.blockDeny.matches(block) && (this.blockAllow.isEmpty() || this.blockAllow.matches(block));
         }
     }
 
     public static final class Respawn {
         public boolean preventSpawnSetting = false;
+        public List<String> preventSpawnSettingDimensions = List.of();
         public String spawnBlockedMessage = "&cYou cannot set your spawn.";
         public boolean bedSpawnRequiresSleep = false;
+        public List<String> stayInDimensions = List.of();
 
-        private transient String resolvedMessage = "";
-        private Set<ResourceKey<Level>> preventSpawnSettingDimensions = Set.of();
-        private Set<ResourceKey<Level>> stayInDimensions = Set.of();
+        private transient String message;
+        private transient IdMatcher<Level> blockedDimensions;
+        private transient IdMatcher<Level> stayDimensions;
 
-        public void normalise() {
-            this.resolvedMessage = translateFormatCodes(this.spawnBlockedMessage);
+        private void bake() {
+            this.message = this.spawnBlockedMessage == null ? ""
+                    : this.spawnBlockedMessage.replaceAll("(?i)&(?=[0-9a-fk-or])", String.valueOf(ChatFormatting.PREFIX_CODE));
+            this.blockedDimensions = IdMatcher.of(Registries.DIMENSION, this.preventSpawnSettingDimensions);
+            this.stayDimensions = IdMatcher.of(Registries.DIMENSION, this.stayInDimensions);
         }
 
         public String message() {
-            return this.resolvedMessage;
-        }
-
-        public void setDimensionLists(List<? extends String> preventSpawnSetting, List<? extends String> stayIn) {
-            this.preventSpawnSettingDimensions = parseDimensions(preventSpawnSetting);
-            this.stayInDimensions = parseDimensions(stayIn);
+            return this.message;
         }
 
         public boolean blocksSpawnSetting(ResourceKey<Level> dimension) {
-            return this.preventSpawnSetting
-                    || (dimension != null && this.preventSpawnSettingDimensions.contains(dimension));
+            return this.preventSpawnSetting || this.blockedDimensions.matches(dimension);
         }
 
         public boolean staysIn(ResourceKey<Level> dimension) {
-            return dimension != null && this.stayInDimensions.contains(dimension);
-        }
-
-        private static Set<ResourceKey<Level>> parseDimensions(List<? extends String> entries) {
-            if (entries == null || entries.isEmpty()) {
-                return Set.of();
-            }
-            Set<ResourceKey<Level>> dimensions = new HashSet<>();
-            for (String entry : entries) {
-                if (entry == null || entry.isBlank()) {
-                    continue;
-                }
-                ResourceLocation id = ResourceLocation.tryParse(entry.trim());
-                if (id != null) {
-                    dimensions.add(ResourceKey.create(Registries.DIMENSION, id));
-                }
-            }
-            return Set.copyOf(dimensions);
+            return this.stayDimensions.matches(dimension);
         }
     }
 }

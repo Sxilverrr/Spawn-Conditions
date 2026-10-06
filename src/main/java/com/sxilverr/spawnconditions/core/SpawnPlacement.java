@@ -22,7 +22,7 @@ public final class SpawnPlacement {
 
         int lowest = Math.max(level.getMinBuildHeight(), placement.minY);
         int highest = Math.min(level.getMaxBuildHeight() - 1, placement.maxY);
-        if (lowest > highest) {
+        if (lowest > highest || !placement.withinHorizontalBounds(x, z)) {
             return null;
         }
 
@@ -41,8 +41,7 @@ public final class SpawnPlacement {
 
         BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
         for (int y = top; y >= floor; y--) {
-            cursor.set(x, y, z);
-            BlockState state = level.getBlockState(cursor);
+            BlockState state = level.getBlockState(cursor.set(x, y, z));
             FluidState fluid = state.getFluidState();
 
             if (!fluid.isEmpty()) {
@@ -72,57 +71,31 @@ public final class SpawnPlacement {
     }
 
     private static boolean isGround(ServerLevel level, BlockPos pos, BlockState state, SpawnConfig.Placement placement) {
-        SpawnConfig.GroundRequirement requirement = placement.groundRequirement;
-        if (requirement == SpawnConfig.GroundRequirement.ANY_BLOCK) {
-            return !state.isAir();
-        }
-        if (requirement == SpawnConfig.GroundRequirement.ANY_COLLISION) {
-            return !state.getCollisionShape(level, pos).isEmpty();
-        }
-        return Block.isFaceFull(state.getCollisionShape(level, pos), Direction.UP);
+        return switch (placement.groundRequirement) {
+            case ANY_BLOCK -> !state.isAir();
+            case ANY_COLLISION -> !state.getCollisionShape(level, pos).isEmpty();
+            case FULL_FACE -> Block.isFaceFull(state.getCollisionShape(level, pos), Direction.UP);
+        };
     }
 
     @Nullable
     private static BlockPos accept(ServerLevel level, BlockPos pos, BlockState support, SpawnConfig.Placement placement) {
-        if (pos.getY() < placement.minY || pos.getY() > placement.maxY) {
-            return null;
-        }
-        if (!placement.withinHorizontalBounds(pos.getX(), pos.getZ())) {
-            return null;
-        }
-        if (!placement.blockAllowed(support)) {
-            return null;
-        }
-        if (!placement.biomeAllowed(level.getBiome(pos))) {
-            return null;
-        }
-        if (!hasHeadroom(level, pos, placement)) {
-            return null;
-        }
-        return pos;
+        boolean accepted = pos.getY() <= placement.maxY
+                && placement.blockAllowed(support)
+                && placement.biomeAllowed(level.getBiome(pos))
+                && hasHeadroom(level, pos, placement);
+        return accepted ? pos : null;
     }
 
     private static boolean hasHeadroom(ServerLevel level, BlockPos pos, SpawnConfig.Placement placement) {
-        int required = placement.requiredHeadroom;
-        if (required <= 0) {
-            return true;
-        }
-        int limit = level.getMaxBuildHeight();
+        int limit = pos.getY() + Math.min(placement.requiredHeadroom, level.getMaxBuildHeight() - pos.getY());
         BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
-        for (int offset = 0; offset < required; offset++) {
-            int y = pos.getY() + offset;
-            if (y >= limit) {
-                return true;
-            }
-            cursor.set(pos.getX(), y, pos.getZ());
-            BlockState state = level.getBlockState(cursor);
-            if (!state.getFluidState().isEmpty()) {
-                if (!placement.headroomAllowsFluid) {
-                    return false;
-                }
-                continue;
-            }
-            if (!state.getCollisionShape(level, cursor).isEmpty()) {
+        for (int y = pos.getY(); y < limit; y++) {
+            BlockState state = level.getBlockState(cursor.set(pos.getX(), y, pos.getZ()));
+            boolean blocked = state.getFluidState().isEmpty()
+                    ? !state.getCollisionShape(level, cursor).isEmpty()
+                    : !placement.headroomAllowsFluid;
+            if (blocked) {
                 return false;
             }
         }

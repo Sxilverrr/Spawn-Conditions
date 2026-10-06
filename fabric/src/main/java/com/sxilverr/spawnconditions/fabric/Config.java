@@ -3,23 +3,16 @@ package com.sxilverr.spawnconditions.fabric;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.stream.JsonReader;
-import com.sxilverr.spawnconditions.SpawnConditions;
 import com.sxilverr.spawnconditions.config.SpawnConfig;
 import net.fabricmc.loader.api.FabricLoader;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
 
 public final class Config {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
-
-    private static final Path PATH =
-            FabricLoader.getInstance().getConfigDir().resolve(SpawnConditions.MOD_ID + ".json");
+    private static final Path PATH = FabricLoader.getInstance().getConfigDir().resolve(SpawnConfig.MOD_ID + ".json");
 
     private static Data data = new Data();
 
@@ -31,156 +24,46 @@ public final class Config {
     }
 
     public static void load() {
-        if (Files.isRegularFile(PATH)) {
-            try (BufferedReader source = Files.newBufferedReader(PATH, StandardCharsets.UTF_8);
-                 JsonReader reader = new JsonReader(source)) {
-                reader.setLenient(true);
-                Data parsed = GSON.fromJson(reader, Data.class);
-                if (parsed != null) {
-                    data = parsed;
-                }
-            } catch (IOException | RuntimeException e) {
-                data = new Data();
+        if (!Files.isRegularFile(PATH)) {
+            write(DEFAULT_FILE);
+        }
+        try (JsonReader reader = new JsonReader(Files.newBufferedReader(PATH))) {
+            reader.setLenient(true);
+            Data parsed = GSON.fromJson(reader, Data.class);
+            if (parsed != null && parsed.worldSpawn != null && parsed.placement != null && parsed.respawn != null) {
+                data = parsed;
             }
-        } else {
-            writeDefaults();
+        } catch (IOException | RuntimeException ignored) {
         }
-        data.bake();
+        apply();
     }
 
-    public static void persist() {
-        save();
-        data.bake();
+    public static void save() {
+        write(GSON.toJson(data));
+        apply();
     }
 
-    private static void save() {
+    private static void apply() {
+        SpawnConfig.enabled = data.enabled;
+        SpawnConfig.worldSpawn = data.worldSpawn;
+        SpawnConfig.placement = data.placement;
+        SpawnConfig.respawn = data.respawn;
+        SpawnConfig.bake();
+    }
+
+    private static void write(String text) {
         try {
             Files.createDirectories(PATH.getParent());
-            Files.writeString(PATH, GSON.toJson(data), StandardCharsets.UTF_8);
+            Files.writeString(PATH, text);
         } catch (IOException ignored) {
         }
-    }
-
-    private static void writeDefaults() {
-        try {
-            Files.createDirectories(PATH.getParent());
-            Files.writeString(PATH, DEFAULT_FILE, StandardCharsets.UTF_8);
-        } catch (IOException ignored) {
-        }
-    }
-
-    public static final class WorldSpawnData {
-        public boolean randomize = false;
-        public String area = "RING";
-        public int centerX = 0;
-        public int centerZ = 0;
-        public int minRadius = 0;
-        public int maxRadius = 10000;
-        public int minX = -10000;
-        public int maxX = 10000;
-        public int minZ = -10000;
-        public int maxZ = 10000;
-        public int attempts = 32;
-    }
-
-    public static final class PlacementData {
-        public boolean fluidBlocksColumn = true;
-        public String liquidLanding = "SURFACE";
-        public String groundRequirement = "FULL_FACE";
-        public int requiredHeadroom = 0;
-        public boolean headroomAllowsFluid = true;
-        public int maxSearchDepth = 0;
-        public int minY = -2048;
-        public int maxY = 2048;
-        public boolean limitHorizontally = false;
-        public int minX = -30000000;
-        public int maxX = 30000000;
-        public int minZ = -30000000;
-        public int maxZ = 30000000;
-        public List<String> biomeAllowList = new ArrayList<>();
-        public List<String> biomeDenyList = new ArrayList<>();
-        public List<String> blockAllowList = new ArrayList<>();
-        public List<String> blockDenyList = new ArrayList<>();
-        public List<String> fluidAllowList = new ArrayList<>();
-        public List<String> fluidDenyList = new ArrayList<>();
-    }
-
-    public static final class RespawnData {
-        public boolean preventSpawnSetting = false;
-        public List<String> preventSpawnSettingDimensions = new ArrayList<>();
-        public String spawnBlockedMessage = "&cYou cannot set your spawn.";
-        public boolean bedSpawnRequiresSleep = false;
-        public List<String> stayInDimensions = new ArrayList<>();
     }
 
     public static final class Data {
         public boolean enabled = true;
-        public WorldSpawnData worldSpawn = new WorldSpawnData();
-        public PlacementData placement = new PlacementData();
-        public RespawnData respawn = new RespawnData();
-
-        public void bake() {
-            if (this.worldSpawn == null) {
-                this.worldSpawn = new WorldSpawnData();
-            }
-            if (this.placement == null) {
-                this.placement = new PlacementData();
-            }
-            if (this.respawn == null) {
-                this.respawn = new RespawnData();
-            }
-
-            SpawnConfig.enabled = this.enabled;
-
-            SpawnConfig.worldSpawn.randomize = this.worldSpawn.randomize;
-            SpawnConfig.worldSpawn.area = SpawnConfig.parseEnum(
-                    this.worldSpawn.area, SpawnConfig.WorldSpawnArea.values(), SpawnConfig.WorldSpawnArea.RING);
-            SpawnConfig.worldSpawn.centerX = this.worldSpawn.centerX;
-            SpawnConfig.worldSpawn.centerZ = this.worldSpawn.centerZ;
-            SpawnConfig.worldSpawn.minRadius = this.worldSpawn.minRadius;
-            SpawnConfig.worldSpawn.maxRadius = this.worldSpawn.maxRadius;
-            SpawnConfig.worldSpawn.minX = this.worldSpawn.minX;
-            SpawnConfig.worldSpawn.maxX = this.worldSpawn.maxX;
-            SpawnConfig.worldSpawn.minZ = this.worldSpawn.minZ;
-            SpawnConfig.worldSpawn.maxZ = this.worldSpawn.maxZ;
-            SpawnConfig.worldSpawn.attempts = this.worldSpawn.attempts;
-            SpawnConfig.worldSpawn.normalise();
-
-            SpawnConfig.placement.fluidBlocksColumn = this.placement.fluidBlocksColumn;
-            SpawnConfig.placement.liquidLanding = SpawnConfig.parseEnum(
-                    this.placement.liquidLanding, SpawnConfig.LiquidLanding.values(), SpawnConfig.LiquidLanding.SURFACE);
-            SpawnConfig.placement.groundRequirement = SpawnConfig.parseEnum(
-                    this.placement.groundRequirement, SpawnConfig.GroundRequirement.values(), SpawnConfig.GroundRequirement.FULL_FACE);
-            SpawnConfig.placement.requiredHeadroom = this.placement.requiredHeadroom;
-            SpawnConfig.placement.headroomAllowsFluid = this.placement.headroomAllowsFluid;
-            SpawnConfig.placement.maxSearchDepth = this.placement.maxSearchDepth;
-            SpawnConfig.placement.minY = this.placement.minY;
-            SpawnConfig.placement.maxY = this.placement.maxY;
-            SpawnConfig.placement.limitHorizontally = this.placement.limitHorizontally;
-            SpawnConfig.placement.minX = this.placement.minX;
-            SpawnConfig.placement.maxX = this.placement.maxX;
-            SpawnConfig.placement.minZ = this.placement.minZ;
-            SpawnConfig.placement.maxZ = this.placement.maxZ;
-            SpawnConfig.placement.setBiomeLists(
-                    this.placement.biomeAllowList == null ? List.of() : this.placement.biomeAllowList,
-                    this.placement.biomeDenyList == null ? List.of() : this.placement.biomeDenyList);
-            SpawnConfig.placement.setBlockLists(
-                    this.placement.blockAllowList == null ? List.of() : this.placement.blockAllowList,
-                    this.placement.blockDenyList == null ? List.of() : this.placement.blockDenyList);
-            SpawnConfig.placement.setFluidLists(
-                    this.placement.fluidAllowList == null ? List.of() : this.placement.fluidAllowList,
-                    this.placement.fluidDenyList == null ? List.of() : this.placement.fluidDenyList);
-            SpawnConfig.placement.normalise();
-
-            SpawnConfig.respawn.preventSpawnSetting = this.respawn.preventSpawnSetting;
-            SpawnConfig.respawn.spawnBlockedMessage =
-                    this.respawn.spawnBlockedMessage == null ? "" : this.respawn.spawnBlockedMessage;
-            SpawnConfig.respawn.bedSpawnRequiresSleep = this.respawn.bedSpawnRequiresSleep;
-            SpawnConfig.respawn.setDimensionLists(
-                    this.respawn.preventSpawnSettingDimensions == null ? List.of() : this.respawn.preventSpawnSettingDimensions,
-                    this.respawn.stayInDimensions == null ? List.of() : this.respawn.stayInDimensions);
-            SpawnConfig.respawn.normalise();
-        }
+        public SpawnConfig.WorldSpawn worldSpawn = new SpawnConfig.WorldSpawn();
+        public SpawnConfig.Placement placement = new SpawnConfig.Placement();
+        public SpawnConfig.Respawn respawn = new SpawnConfig.Respawn();
     }
 
     private static final String DEFAULT_FILE = """
